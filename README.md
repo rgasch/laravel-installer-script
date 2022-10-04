@@ -7,6 +7,23 @@ If you do a lot of experimentation with Laravel, this script can save you some t
 (in the top section of the script), to configure packages you want to install (both prod and dev) 
 as well as some post-install actions and files to create. 
 
+Out of the box, it installs the following packages for prod: 
+- filament/filament
+- spatie/laravel-backup
+- patie/laravel-tags
+- spatie/laravel-ray
+- spatie/laravel-responsecache
+
+For dev, it installs the following:
+- nunomaduro/larastan,
+- pestphp/pest-plugin-laravel
+- laravel/pint
+- rector/rector
+
+It then publishes any suggested config files for the above packages and creates the following files:
+- rector.php
+- phpstan.neon
+
 
 ## Who is it for
 It's for Laravel developers. If you know PHP, the script should be self explanatory, if you don't 
