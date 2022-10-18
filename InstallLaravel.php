@@ -26,7 +26,13 @@ $packagesFilament = [
     "bezhansalleh/filament-shield",
     "3x1io/filament-user",
     "3x1io/filament-menus",
-    "ryangjchandler/filament-profile"
+    "ryangjchandler/filament-profile",
+    "ryangjchandler/filament-feature-flags",
+    "spatie/filament-markdown-editor",
+];
+
+$packagesJetstream = [
+    "laravel/jetstream"
 ];
 
 $packagesDev = [
@@ -53,20 +59,43 @@ $postProcessStepsFilament = [
     'php artisan vendor:publish --tag=filament-config',
     'php artisan vendor:publish --tag=filament-translations',
     'php artisan vendor:publish --tag=filament-views',
-    'php artisan vendor:publish --tag=filament-forms-translations',
+    'php artisan vendor:publish --tag=forms-config',
+    'php artisan vendor:publish --tag=forms-translations',
+    'php artisan vendor:publish --tag=forms-views',
+    'php artisan vendor:publish --tag=notifications-config',
+    'php artisan vendor:publish --tag=notifications-translations',
+    'php artisan vendor:publish --tag=notifications-views',
+    'php artisan vendor:publish --tag=tables-config',
+    'php artisan vendor:publish --tag=tables-translations',
+    'php artisan vendor:publish --tag=tables-views',
+    'php artisan vendor:publish --tag=filament-support-config',
     'php artisan vendor:publish --tag=filament-support-translations',
     'php artisan vendor:publish --tag=filament-support-views',
-    'php artisan vendor:publish --tag=filament-tables-translations',
     'php artisan vendor:publish --tag=filament-log-manager-config',
     'php artisan vendor:publish --tag=filament-log-manager-translations',
     'php artisan vendor:publish --tag=filament-log-manager-views',
     'php artisan vendor:publish --tag=filament-shield-config',
     'php artisan vendor:publish --tag=filament-shield-translations',
+    'php artisan vendor:publish --tag=filament-shield-views',
     'php artisan vendor:publish --tag=filament-user-config',
     'php artisan vendor:publish --tag=filament-user-translations',
+    'php artisan vendor:publish --tag=filament-user-views',
+    'php artisan vendor:publish --tag=filament-profile-config',
+    'php artisan vendor:publish --tag=filament-profile-translations',
     'php artisan vendor:publish --tag=filament-profile-views',
+    'php artisan vendor:publish --tag=feature-flags-migrations',
+    'php artisan vendor:publish --tag=feature-flags-config',
     'php artisan livewire:discover',
     'php artisan optimize:clear',
+];
+
+$postProcessStepsJetstreamLivewire = [
+    "php artisan jetstream:install livewire --teams --pest",
+    "php artisan vendor:publish --tag=jetstream-views",
+];
+
+$postProcessStepsJetstreamInertia = [
+    "php artisan jetstream:install livewire --teams --pest",
 ];
 
 $postProcessFiles = [
@@ -113,14 +142,23 @@ $manualStepsFilament = [
     "run {$color}php artisan shield:install{$noColor}",
 ];
 
-$instructions = [
+$manualStepsJetstreamInertia = [
+    "npm install",
+    "npm run build",
+];
+
+$instructions          = [
     "You can run self-contained web server for your instance by typing {$color}php artisan serve{$noColor}",
     "Laravel docs are available from https://laravel.com/docs/9.x/",
 ];
-$instructionsFilament = [
+$instructionsFilament  = [
+    "Filament docs are available from https://filamentphp.com/docs/2.x/",
     "You can find the filament login screen under /admin",
     "Filament docs are available from https://filamentphp.com/docs/2.x/",
     "Information on how to use the installed filament plugins, go to https://filamentphp.com/plugins",
+];
+$instructionsJetstream = [
+    "Jetstream docs are available from https://jetstream.laravel.com/2.x/introduction.html",
 ];
 
 //////////////////////////////////////////////////////////////////////////
@@ -131,33 +169,46 @@ $instructionsFilament = [
 // Check for args
 $targetDir = $argv[1] ?? null;
 if (!$targetDir) {
-    die("Usage: InstallLaravel <targetDirectory> [--without-filament]\n");
+    die("Usage: InstallLaravel <targetDirectory> [--with-filament|--with-jetstream-livewire|--with-jetstream-inertia]\n");
 }
 if (file_exists($targetDir)) {
     die("Error: {$color}$targetDir{$noColor} already exists\n");
 }
 if (strpos($targetDir, '--') === 0) {
-    die("Usage: InstallLaravel <targetDirectory> [--without-filament]\n");
+    die("Usage: InstallLaravel <targetDirectory> [--with-filament|--with-jetstream-livewire|--with-jetstream-inertia]\n");
 }
 
-$withFilament = true;
-$argv2        = $argv[2] ?? null;
+
+/////////////////////////////// Parse Args /////////////////////////////
+$withFilament         = false;
+$withJetstramLivewire = false;
+$withJetstramInertia  = false;
+$argv2                = $argv[2] ?? null;
 if ($argv2) {
-    if ($argv2 != '--without-filament') {
-        die("Usage: InstallLaravel <targetDirectory> [--without-filament]\n");
+    if ($argv2 != '--with-filament' && $argv2 != '--with-jetstream' && $argv2 != '--with-jetstream-livewire' && $argv2 != '--with-jetstream-inertia') {
+        die("Usage: InstallLaravel <targetDirectory> [--with-filament|--with-jetstream-livewire|--with-jetstream-inertia]\n");
     }
-    $withFilament = false;
+
+    if ($argv2 == '--with-filament') {
+        $withFilament = true;
+    }
+
+    if ($argv2 == '--with-jetstream' || $argv2 == '--with-jetstream-livewire') {
+        $withJetstreamLivewire = true;
+    } elseif ($argv2 == '--with-jetstream-inertia') {
+        $withJetstreamInertia = true;
+    }
 }
 
 
-// Try to find a laravel installer
+/////////////////////////////// Try to find Laravel Installer /////////////////////////////
 $laravelInstaller = findLaravelInstaller();
 if (!$laravelInstaller) {
     die ("Unable to find a laravel installer\n");
 }
 
 
-// Now install laravel
+/////////////////////////////// Install Laravel /////////////////////////////
 $cmd = "$laravelInstaller --no-interaction new $targetDir";
 if (!$cmd) { // No installer found, use composer 
     $cmd = "composer create-project --prefer-dist laravel/laravel --no-interaction $targetDir";
@@ -169,47 +220,59 @@ if (!$rc === false) {
 }
 
 
-// Determine final packagelist
+/////////////////////////////// Build final package/steps/etc Lists /////////////////////////////
 if ($withFilament) {
-    $packages = array_merge($packages, $packagesFilament);
+    $packages         = array_merge($packages, $packagesFilament);
     $postProcessSteps = array_merge($postProcessSteps, $postProcessStepsFilament);
-    $manualSteps = array_merge($manualSteps, $manualStepsFilament);
-    $instructions = array_merge($instructions, $instructionsFilament);
+    $manualSteps      = array_merge($manualSteps, $manualStepsFilament);
+    $instructions     = array_merge($instructions, $instructionsFilament);
+} elseif ($withJetstreamLivewire) {
+    $packages         = array_merge($packages, $packagesJetstream);
+    $postProcessSteps = array_merge($postProcessSteps, $postProcessStepsJetstreamInertia);
+    $instructions     = array_merge($instructions, $instructionsJetstream);
+} elseif ($withJetstreamInertia) {
+    $packages         = array_merge($packages, $packagesJetstream);
+    $postProcessSteps = array_merge($postProcessSteps, $postProcessStepsJetstreamInertia);
+    $instructions     = array_merge($instructions, $instructionsJetstream);
 }
 
 
-// Change into install dir
+/////////////////////////////// Change into install dir /////////////////////////////
 chdir($targetDir);
 
 
-// Install main packages
+/////////////////////////////// Install main packages /////////////////////////////
 $cmd = "composer --no-interaction require " . implode(' ', $packages);
 execSteps($cmd, $color, $noColor);
 
-// Install dev packages
+/////////////////////////////// Install dev packages /////////////////////////////
 $cmd = "composer --no-interaction --dev require " . implode(' ', $packagesDev);
 execSteps($cmd, $color, $noColor);
 
-// Execute post process steps
+/////////////////////////////// Execute PostProcess Steps /////////////////////////////
 execSteps($postProcessSteps, $color, $noColor);
 
-// Create post process files
+/////////////////////////////// Create PostProcess Files /////////////////////////////
 foreach ($postProcessFiles as $k => $v) {
     print "Creating {$color}[$k]{$noColor}\n";
     file_put_contents($k, $v);
 }
 
-// Patch user model for filament shield
+/////////////////////////////// Patch user model for filament-shield /////////////////////////////
 if (in_array("bezhansalleh/filament-shield", $packages)) {
-    patchFilamentConfigForDarkMode($color, $noColor);
+    patchFilamentConfig($color, $noColor);
+    patchFilamentTablesConfigFile($color, $noColor);
+    patchFilamentComposerJson($color, $noColor);
     patchUserModelForFilamentShield($color, $noColor);
 }
 
 
 print "\n";
-print "---------------------------------------------\n";
-print "All done ... {$color}now perform these manual steps:{$noColor}\n";
-print "---------------------------------------------\n\n";
+print "{$color}";
+print "============================================\n";
+print "All done ... now perform these manual steps:\n";
+print "============================================\n";
+print "{$noColor}";
 foreach ($manualSteps as $k => $v) {
     $kk = $k + 1;
     print "$kk) $v\n";
@@ -300,10 +363,10 @@ function getHomeDirectory(): string
 }
 
 
-function patchFilamentConfigForDarkMode(string $color, string $noColor): void
+function patchFilamentConfig(string $color, string $noColor): void
 {
     $configFile = "config/filament.php";
-    print "Patching {$color}$configFile{$noColor} to enable darkMode\n";
+    print "Patching {$color}$configFile{$noColor} to enable darkMode & collapsibleOnDesktop\n";
 
     $fileData = file_get_contents($configFile);
     if (!$fileData) {
@@ -316,8 +379,70 @@ function patchFilamentConfigForDarkMode(string $color, string $noColor): void
         if (strpos($line, "'dark_mode' => false")) {
             $line = str_replace('false', 'true', $line);
         }
+        if (strpos($line, "'is_collapsible_on_desktop' => false")) {
+            $line = str_replace('false', 'true', $line);
+        }
         $output[] = $line;
     }
+
+    $rc = file_put_contents($configFile, implode("\n", $output));
+    if ($rc === false) {
+        throw new \Exception("Unable to write [$configFile]");
+    }
+}
+
+
+function patchFilamentComposerJson(string $color, string $noColor): void
+{
+    $composerFile = "composer.json";
+    print "Patching {$color}$composerFile{$noColor} to enable automatic upgrade\n";
+
+    $fileData = file_get_contents($composerFile);
+    if (!$fileData) {
+        throw new \Exception("Unable to read [$composerFile]");
+    }
+    $fileLines = explode("\n", $fileData);
+    $output    = [];
+
+    $insertNewLineNow = false;
+    foreach ($fileLines as $line) {
+        if (strpos($line, "@php artisan vendor:publish --tag=laravel-assets --ansi --force")) {
+            $insertNewLineNow = true;
+            $line .= ",";
+        }
+        $output[] = $line;
+        if ($insertNewLineNow) {
+            $output[]         = '"@php artisan filament:upgrade"';
+            $insertNewLineNow = false;
+        }
+    }
+
+    $rc = file_put_contents($composerFile, implode("\n", $output));
+    if ($rc === false) {
+        throw new \Exception("Unable to write [$composerFile]");
+    }
+}
+
+
+function patchFilamentTablesConfigFile(string $color, string $noColor): void
+{
+    $configFile = "config/tables.php";
+    print "Patching {$color}$configFile{$noColor} to increase table pagination size\n";
+
+    $fileData = file_get_contents($configFile);
+    if (!$fileData) {
+        throw new \Exception("Unable to read [$configFile]");
+    }
+    $fileLines = explode("\n", $fileData);
+    $output    = [];
+
+    foreach ($fileLines as $line) {
+        if (strpos($line, "'default_records_per_page' => 10")) {
+            $line = str_replace('10', '25', $line);
+        }
+        $output[] = $line;
+    }
+
 
     $rc = file_put_contents($configFile, implode("\n", $output));
     if ($rc === false) {

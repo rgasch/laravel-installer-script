@@ -9,33 +9,6 @@ as well as some post-install actions and files to create. It also performs some 
 such as publishing package config files, migrations, resources, etc. and patches some files so that 
 everything is set up correctly. 
 
-Out of the box, it installs the following packages for prod: 
-- spatie/laravel-backup
-- patie/laravel-tags
-- spatie/laravel-ray
-- spatie/laravel-responsecache
-- filament/filament
-- filament/forms
-- filament/notifications
-- filament/tables
-- filament/spatie-laravel-settings-plugin
-- filament/spatie-laravel-tags-plugin
-- filipfonal/filament-log-manager
-- bezhansalleh/filament-shield
-- 3x1io/filament-user
-- 3x1io/filament-menus
-- ryangjchandler/filament-profile
-
-For dev, it installs the following:
-- nunomaduro/larastan,
-- pestphp/pest-plugin-laravel
-- laravel/pint
-- rector/rector
-
-It also creates the following files:
-- rector.php
-- phpstan.neon
-
 
 ## Who is it for
 It's for Laravel developers who quickly want to install a new instance of Laravel and have some manual 
@@ -43,14 +16,91 @@ steps taken care of automatically. If you know PHP, the script should be self ex
 know PHP, this is probably not for you. I wrote it for my own purposes during a weekend of 
 experimentation (it's a bit hacky but does the job).
 
-## How to use it
-Assuming you've configured packages you want to install in the top section of the script, you can then call
-```
-php InstallLaravel.php <targetDirectory> [--without-filament]
-```
-and it will install the latest laravel with the configured packages (ie: with or without filament) and actions. 
 
-### Requirements
+## Usage
+
+InstallLaravel.php <targetDirectory> [--with-filament|--with-jetstream-livewire|--with-jetstream-inertia]
+
+
+### Default Install
+
+Out of the box, it installs the following packages: 
+
+- spatie/laravel-backup
+- spatie/laravel-ray,
+- spatie/laravel-responsecache
+- spatie/laravel-settings
+- spatie/laravel-tags
+
+
+### Filament install (--with-filament)
+
+If you select to install Filament, the following packages will be installed
+
+- filament/filament
+- filament/forms
+- filament/notifications
+- filament/tables
+- filament/spatie-laravel-settings-plugin
+- filament/spatie-laravel-tags-plugin
+- 3x1io/filament-user
+- 3x1io/filament-menus
+- bezhansalleh/filament-shield
+- filipfonal/filament-log-manager
+- ryangjchandler/filament-profile
+- ryangjchandler/filament-feature-flags
+- spatie/laravel-backup
+- spatie/laravel-ray
+- spatie/laravel-responsecache
+- spatie/laravel-settings
+- spatie/laravel-tags
+
+In addition to this it will apply patches to enable the following filament features: 
+
+- Patch the User model to enable usage of filament-shield
+- Enable Dark Mode
+- Enable Collapsible menu on desktop
+- Increase default pagination size to 25
+
+
+### Jetstream Livewire install (--with-jetstream-livewire)
+
+If you select to install Jetstream Livewire, the following package will be installed
+
+- laravel/jetstream
+
+and the livewire config will be published. 
+
+
+### Jetstream Inertia install (--with-jetstream-inertia)
+
+If you select to install Jetstream Livewire, the following package will be installed
+
+- laravel/jetstream
+
+and the inertia config will be published. 
+
+
+### Dev Packages
+
+Regardless of which install option you choose, the following dev packages will be installed 
+
+- laravel/pint
+- nunomaduro/larastan,
+- pestphp/pest-plugin-laravel
+- rector/rector
+
+Along with these dev packages, the following files will be created: 
+
+- rector.php
+- phpstan.neon
+
+
+## Config files and assets
+
+If any of the installed packages provide publishable 
+
+## Requirements
 - Written against a PHP8.1 installation, should also work on PHP8.0.
 - Requires either the Laravel installer or composer to be installed.
 
