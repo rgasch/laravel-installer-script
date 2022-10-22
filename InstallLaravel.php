@@ -9,6 +9,7 @@ $noColor = "\033[0m";
 
 $packages = [
     "spatie/laravel-backup",
+    "spatie/laravel-model-flags",
     "spatie/laravel-settings",
     "spatie/laravel-tags",
     "spatie/laravel-ray",
@@ -44,6 +45,8 @@ $packagesDev = [
 
 $postProcessSteps = [
     'php artisan vendor:publish --provider="Spatie\Backup\BackupServiceProvider"',
+    'php artisan vendor:publish --tag="model-flags-migrations"',
+    'php artisan vendor:publish --tag="model-flags-config"',
     'php artisan vendor:publish --provider="Spatie\Tags\TagsServiceProvider" --tag="tags-migrations"',
     'php artisan vendor:publish --provider="Spatie\Tags\TagsServiceProvider" --tag="tags-config"',
     'php artisan vendor:publish --provider="Spatie\LaravelSettings\LaravelSettingsServiceProvider" --tag="migrations"',
@@ -169,48 +172,63 @@ $instructionsJetstream = [
 // Check for args
 $targetDir = $argv[1] ?? null;
 if (!$targetDir) {
-    die("Usage: InstallLaravel <targetDirectory> [--with-filament|--with-jetstream-livewire|--with-jetstream-inertia]\n");
+    die("Usage: InstallLaravel <targetDirectory> [--with-filament|--with-jetstream-livewire|--with-jetstream-inertia|--with-strict-mode]\n");
 }
 if (file_exists($targetDir)) {
     die("Error: {$color}$targetDir{$noColor} already exists\n");
 }
 if (strpos($targetDir, '--') === 0) {
-    die("Usage: InstallLaravel <targetDirectory> [--with-filament|--with-jetstream-livewire|--with-jetstream-inertia]\n");
+    die("Usage: InstallLaravel <targetDirectory> [--with-filament|--with-jetstream-livewire|--with-jetstream-inertia|--with-strict-mode]\n");
 }
 
 
 /////////////////////////////// Parse Args /////////////////////////////
+$validArgs = [
+    '--with-filament',
+    '--with-jetstream',
+    '--with-jetstream-livewire',
+    '--with-jetstream-inertia',
+    '--with-strict-mode'
+];
 $withFilament         = false;
 $withJetstramLivewire = false;
 $withJetstramInertia  = false;
-$argv2                = $argv[2] ?? null;
-if ($argv2) {
-    if ($argv2 != '--with-filament' && $argv2 != '--with-jetstream' && $argv2 != '--with-jetstream-livewire' && $argv2 != '--with-jetstream-inertia') {
-        die("Usage: InstallLaravel <targetDirectory> [--with-filament|--with-jetstream-livewire|--with-jetstream-inertia]\n");
+$withStrictMode       = false;
+for($i=2; $i<$argc; $i++) {
+    switch($argv[$i]) {
+        case '--with-filament':
+            $withFilament = true;
+            break;
+        case '--with-jetstream':
+        case '--with-jetstream-livewire':
+            $withJetstreamLivewire = true;
+            break;
+        case '--with-jetstream-inertia':
+            $withJetstramInertia = true;
+            break;
+        case '--with-strict-mode':
+            $withStrictMode = true;
+            break;
+        default:
+            die("Usage: InstallLaravel <targetDirectory> [--with-filament|--with-jetstream-livewire|--with-jetstream-inertia|--with-strict-mode]\n");
     }
+}
 
-    if ($argv2 == '--with-filament') {
-        $withFilament = true;
-    }
-
-    if ($argv2 == '--with-jetstream' || $argv2 == '--with-jetstream-livewire') {
-        $withJetstreamLivewire = true;
-    } elseif ($argv2 == '--with-jetstream-inertia') {
-        $withJetstreamInertia = true;
-    }
+if ($withFilament && ($withJetstreamLivewire || $withJetstramInertia)) {
+    die("Please choose either Filament or Jetstream support but not both\n");
+}
+if ($withJetstreamLivewire && $withJetstramInertia) {
+    die("Please choose either Jetstream-Livewire or Jetstream-Inertia support but not both\n");
 }
 
 
 /////////////////////////////// Try to find Laravel Installer /////////////////////////////
 $laravelInstaller = findLaravelInstaller();
-if (!$laravelInstaller) {
-    die ("Unable to find a laravel installer\n");
-}
 
 
 /////////////////////////////// Install Laravel /////////////////////////////
 $cmd = "$laravelInstaller --no-interaction new $targetDir";
-if (!$cmd) { // No installer found, use composer 
+if (!$laravelInstaller) { // No installer found, use composer 
     $cmd = "composer create-project --prefer-dist laravel/laravel --no-interaction $targetDir";
 }
 print "{$color}Installing Laravel into [$targetDir]{$noColor}\n";
@@ -230,7 +248,7 @@ if ($withFilament) {
     $packages         = array_merge($packages, $packagesJetstream);
     $postProcessSteps = array_merge($postProcessSteps, $postProcessStepsJetstreamInertia);
     $instructions     = array_merge($instructions, $instructionsJetstream);
-} elseif ($withJetstreamInertia) {
+} elseif ($withJetstramInertia) {
     $packages         = array_merge($packages, $packagesJetstream);
     $postProcessSteps = array_merge($postProcessSteps, $postProcessStepsJetstreamInertia);
     $instructions     = array_merge($instructions, $instructionsJetstream);
@@ -264,6 +282,11 @@ if (in_array("bezhansalleh/filament-shield", $packages)) {
     patchFilamentTablesConfigFile($color, $noColor);
     patchFilamentComposerJson($color, $noColor);
     patchUserModelForFilamentShield($color, $noColor);
+}
+
+/////////////////////////////// Patch AppServiceProvider for StrictMode /////////////////////////////
+if ($withStrictMode) {
+    patchAppServiceProviderForStrictMode($color, $noColor);
 }
 
 
@@ -352,6 +375,8 @@ function findLaravelInstaller(): string|false
         print "not found\n";
     }
 
+    print "Reverting to composer\n";
+
     return false;
 
 }
@@ -401,9 +426,8 @@ function patchFilamentComposerJson(string $color, string $noColor): void
     if (!$fileData) {
         throw new \Exception("Unable to read [$composerFile]");
     }
-    $fileLines = explode("\n", $fileData);
-    $output    = [];
-
+    $fileLines        = explode("\n", $fileData);
+    $output           = [];
     $insertNewLineNow = false;
     foreach ($fileLines as $line) {
         if (strpos($line, "@php artisan vendor:publish --tag=laravel-assets --ansi --force")) {
@@ -443,7 +467,6 @@ function patchFilamentTablesConfigFile(string $color, string $noColor): void
         $output[] = $line;
     }
 
-
     $rc = file_put_contents($configFile, implode("\n", $output));
     if ($rc === false) {
         throw new \Exception("Unable to write [$configFile]");
@@ -460,9 +483,8 @@ function patchUserModelForFilamentShield(string $color, string $noColor): void
     if (!$fileData) {
         throw new \Exception("Unable to read [$userModel]");
     }
-    $fileLines = explode("\n", $fileData);
-    $output    = [];
-
+    $fileLines  = explode("\n", $fileData);
+    $output     = [];
     $firstUse   = false;
     $firstBrace = false;
     foreach ($fileLines as $line) {
@@ -480,5 +502,87 @@ function patchUserModelForFilamentShield(string $color, string $noColor): void
     $rc = file_put_contents($userModel, implode("\n", $output));
     if ($rc === false) {
         throw new \Exception("Unable to write [$userModel]");
+    }
+}
+
+
+function patchAppServiceProviderForStrictMode(string $color, string $noColor): void
+{
+    $serviceProvider = "app/Providers/AppServiceProvider.php";
+    print "Patching {$color}$serviceProvider{$noColor} to enable StrictMode protections & logging\n";
+
+    $fileData = file_get_contents($serviceProvider);
+    if (!$fileData) {
+        throw new \Exception("Unable to read [$serviceProvider]");
+    }
+    $fileLines = explode("\n", $fileData);
+    $output    = [];
+    $firstUse  = false;
+
+    for ($i=0; $i<count($fileLines); $i++) {
+        $line     = $fileLines[$i];
+        $output[] = $line;
+        if (!$firstUse && strpos($line, 'use ') === 0) {
+            $output[] = 'use Illuminate\Database\Eloquent\Model;';
+            $output[] = 'use Illuminate\Contracts\Http\Kernel as HttpKernel;';
+            $output[] = 'use Illuminate\Contracts\Console\Kernel as ConsoleKernel;';
+            $output[] = 'use Illuminate\Support\Facades\DB;';
+            $output[] = 'use Illuminate\Support\Facades\Log;';
+            $firstUse = true;
+        }
+        if (strpos($line, 'public function boot()') !== false) {
+            $output[] = $fileLines[++$i];
+            $output[] = "
+        // Enable partially hydrated model protection
+        Model::preventAccessingMissingAttributes();
+
+        // Enable unfillable property setting protection
+        Model::preventSilentlyDiscardingAttributes();
+
+        // Prevent lazy loading always.
+        Model::preventLazyLoading();
+
+        // But in production, log the violation instead of throwing an exception.
+        if (\$this->app->isProduction()) {
+            Model::handleLazyLoadingViolationUsing(function (\$model, \$relation) {
+                \$class = get_class(\$model);
+                info(\"Attempted to lazy load [{\$relation}] on model [{\$class}].\");
+            });
+        }
+
+        // Log queries which run for more than 1 second
+        DB::whenQueryingForLongerThan(1000, function (Connection \$connection) {
+            Log::warning(\"Database queries exceeded 2 seconds on {\$connection->getName()}\");
+        });
+
+        // Log slow Commands (5 seconds) or Requests (1 second)
+        if (\$this->app->runningInConsole()) {
+            \$this->app[ConsoleKernel::class]->whenCommandLifecycleIsLongerThan(
+                5000,
+                function (\$startedAt, \$input, \$status) {
+                    Log::warning(\"A command took longer than 5 seconds.\", [
+                        'command' => (string)\$input,
+                        'duration' => \$startedAt->floatDiffInSeconds(),
+                    ]);
+                }
+            );
+        } else {
+            \$this->app[HttpKernel::class]->whenRequestLifecycleIsLongerThan(
+                1000,
+                function (\$startedAt, \$request, \$response) {
+                    Log::warning(\"A request took longer than 1 seconds.\", [
+                        'user' => \$request->user()?->id,
+                        'url' => \$request->fullUrl(),
+                        'duration' => \$startedAt->floatDiffInSeconds(),
+                    ]);
+                }
+            );
+        }\n";
+        }
+    }
+
+    $rc = file_put_contents($serviceProvider, implode("\n", $output));
+    if ($rc === false) {
+        throw new \Exception("Unable to write [$serviceProvider]");
     }
 }
