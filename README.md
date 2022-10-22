@@ -48,8 +48,8 @@ safeguards:
 - Logging of commands running longer than 5 seconds
 
 For a more in-detail discussion of these options see 
-[this] (https://planetscale.com/blog/laravels-safety-mechanisms) excellent blog post 
-by [Aaron Francis] (https://twitter.com/aarondfrancis).
+[this](https://planetscale.com/blog/laravels-safety-mechanisms) excellent blog post 
+by [Aaron Francis](https://twitter.com/aarondfrancis).
 
 
 ### Filament Install (--with-filament)
