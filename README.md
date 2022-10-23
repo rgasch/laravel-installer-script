@@ -51,6 +51,12 @@ For a more in-detail discussion of these options see
 [this](https://planetscale.com/blog/laravels-safety-mechanisms) excellent blog post 
 by [Aaron Francis](https://twitter.com/aarondfrancis).
 
+**Warning**: while strict mode is a sensible default for a development environment, enabling 
+this option may result in errors in some of the addons installed or in any additional 
+modules you install. If so, it would probably be helpful to log tickets against any 
+such packages and (temporarily?) disable the strict mode option which causes the 
+issue but editing app/Providers/AppServiceProvider accordingly. 
+
 
 ### Filament Install (--with-filament)
 
