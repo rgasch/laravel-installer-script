@@ -11,15 +11,16 @@ everything is set up correctly.
 
 
 ## Who is it for
-It's for Laravel developers who quickly want to install a new instance of Laravel and have some manual 
-steps taken care of automatically. If you know PHP, the script should be self explanatory, if you don't 
-know PHP, this is probably not for you. I wrote it for my own purposes during a weekend of 
-experimentation (it's a bit hacky but does the job).
+It's for Laravel developers who quickly want to install a new instance of Laravel, have some manual 
+steps taken care of automatically and have a baseline for further experimentation and/or development. 
+If you know PHP, the install script should be self explanatory, if you don't know PHP, this is probably 
+not for you. I wrote it for my own purposes during a weekend of experimentation (it's a bit hacky but 
+does the job).
 
 
 ## Usage
 
-InstallLaravel.php <targetDirectory> [--with-filament|--with-jetstream-livewire|--with-jetstream-inertia]
+InstallLaravel.php <targetDirectory> [--with-filament|--with-jetstream-livewire|--with-jetstream-inertia] [--with-strict-mode]
 
 
 ### Default Install
@@ -33,7 +34,25 @@ Out of the box, it installs the following packages:
 - spatie/laravel-tags
 
 
-### Filament install (--with-filament)
+### Strict Option Install
+
+Regardless of which extra distribution you choose to install (see below), you can supply
+the '--with-strict-mode' option which will patch AppServiceProvider to activate the following
+safeguards: 
+
+- Model::preventAccessingMissingAttributes()
+- Model::preventSilentlyDiscardingAttributes()
+- Model::preventLazyLoading() - in production mode this will only log violations
+- Logging of queries running longer than 1 second
+- Logging of requests running longer than 1 second
+- Logging of commands running longer than 5 seconds
+
+For a more in-detail discussion of these options see 
+[this](https://planetscale.com/blog/laravels-safety-mechanisms) excellent blog post 
+by [Aaron Francis](https://twitter.com/aarondfrancis).
+
+
+### Filament Install (--with-filament)
 
 If you select to install Filament, the following packages will be installed
 
@@ -50,6 +69,7 @@ If you select to install Filament, the following packages will be installed
 - ryangjchandler/filament-profile
 - ryangjchandler/filament-feature-flags
 - spatie/laravel-backup
+- spatie/laravel-model-flags
 - spatie/laravel-ray
 - spatie/laravel-responsecache
 - spatie/laravel-settings
@@ -63,7 +83,7 @@ In addition to this it will apply patches to enable the following filament featu
 - Increase default pagination size to 25
 
 
-### Jetstream Livewire install (--with-jetstream-livewire)
+### Jetstream Livewire Install (--with-jetstream|--with-jetstream-livewire)
 
 If you select to install Jetstream Livewire, the following package will be installed
 
@@ -72,7 +92,7 @@ If you select to install Jetstream Livewire, the following package will be insta
 and the livewire config will be published. 
 
 
-### Jetstream Inertia install (--with-jetstream-inertia)
+### Jetstream Inertia Install (--with-jetstream-inertia)
 
 If you select to install Jetstream Livewire, the following package will be installed
 
