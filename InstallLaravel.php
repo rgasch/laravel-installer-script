@@ -523,6 +523,7 @@ function patchAppServiceProviderForStrictMode(string $color, string $noColor): v
         $line     = $fileLines[$i];
         $output[] = $line;
         if (!$firstUse && strpos($line, 'use ') === 0) {
+            $output[] = 'use Illuminate\Database\Connection';
             $output[] = 'use Illuminate\Database\Eloquent\Model;';
             $output[] = 'use Illuminate\Contracts\Http\Kernel as HttpKernel;';
             $output[] = 'use Illuminate\Contracts\Console\Kernel as ConsoleKernel;';
@@ -546,13 +547,13 @@ function patchAppServiceProviderForStrictMode(string $color, string $noColor): v
         if (\$this->app->isProduction()) {
             Model::handleLazyLoadingViolationUsing(function (\$model, \$relation) {
                 \$class = get_class(\$model);
-                info(\"Attempted to lazy load [{\$relation}] on model [{\$class}].\");
+                Log::warning(\"Attempted to lazy load [{\$relation}] on model [{\$class}].\");
             });
         }
 
         // Log queries which run for more than 1 second
         DB::whenQueryingForLongerThan(1000, function (Connection \$connection) {
-            Log::warning(\"Database queries exceeded 2 seconds on {\$connection->getName()}\");
+            Log::warning(\"Database queries exceeded 1 second on {\$connection->getName()}\");
         });
 
         // Log slow Commands (5 seconds) or Requests (1 second)
