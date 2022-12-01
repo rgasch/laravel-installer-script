@@ -233,7 +233,7 @@ if (!$laravelInstaller) { // No installer found, use composer
 }
 print "{$color}Installing Laravel into [$targetDir]{$noColor}\n";
 $rc = system($cmd);
-if (!$rc === false) {
+if (!$laravelInstaller && !$rc === false) {
     die("System command [$cmd] failed ... exiting\n");
 }
 
