@@ -191,8 +191,8 @@ $validArgs = [
     '--with-strict-mode'
 ];
 $withFilament         = false;
-$withJetstramLivewire = false;
-$withJetstramInertia  = false;
+$withJetstreamLivewire = false;
+$withJetstreamInertia  = false;
 $withStrictMode       = false;
 for($i=2; $i<$argc; $i++) {
     switch($argv[$i]) {
