@@ -190,10 +190,10 @@ $validArgs = [
     '--with-jetstream-inertia',
     '--with-strict-mode'
 ];
-$withFilament         = false;
-$withJetstramLivewire = false;
-$withJetstramInertia  = false;
-$withStrictMode       = false;
+$withFilament          = false;
+$withJetstreamLivewire = false;
+$withJetstreamInertia  = false;
+$withStrictMode        = false;
 for($i=2; $i<$argc; $i++) {
     switch($argv[$i]) {
         case '--with-filament':
@@ -204,7 +204,7 @@ for($i=2; $i<$argc; $i++) {
             $withJetstreamLivewire = true;
             break;
         case '--with-jetstream-inertia':
-            $withJetstramInertia = true;
+            $withJetstreamInertia = true;
             break;
         case '--with-strict-mode':
             $withStrictMode = true;
@@ -214,10 +214,10 @@ for($i=2; $i<$argc; $i++) {
     }
 }
 
-if ($withFilament && ($withJetstreamLivewire || $withJetstramInertia)) {
+if ($withFilament && ($withJetstreamLivewire || $withJetstreamInertia)) {
     die("Please choose either Filament or Jetstream support but not both\n");
 }
-if ($withJetstreamLivewire && $withJetstramInertia) {
+if ($withJetstreamLivewire && $withJetstreamInertia) {
     die("Please choose either Jetstream-Livewire or Jetstream-Inertia support but not both\n");
 }
 
@@ -233,7 +233,7 @@ if (!$laravelInstaller) { // No installer found, use composer
 }
 print "{$color}Installing Laravel into [$targetDir]{$noColor}\n";
 $rc = system($cmd);
-if (!$rc === false) {
+if ($rc === false) {
     die("System command [$cmd] failed ... exiting\n");
 }
 
@@ -248,7 +248,7 @@ if ($withFilament) {
     $packages         = array_merge($packages, $packagesJetstream);
     $postProcessSteps = array_merge($postProcessSteps, $postProcessStepsJetstreamInertia);
     $instructions     = array_merge($instructions, $instructionsJetstream);
-} elseif ($withJetstramInertia) {
+} elseif ($withJetstreamInertia) {
     $packages         = array_merge($packages, $packagesJetstream);
     $postProcessSteps = array_merge($postProcessSteps, $postProcessStepsJetstreamInertia);
     $instructions     = array_merge($instructions, $instructionsJetstream);
