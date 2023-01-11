@@ -523,7 +523,7 @@ function patchAppServiceProviderForStrictMode(string $color, string $noColor): v
         $line     = $fileLines[$i];
         $output[] = $line;
         if (!$firstUse && strpos($line, 'use ') === 0) {
-            $output[] = 'use Illuminate\Database\Connection';
+            $output[] = 'use Illuminate\Database\Connection;';
             $output[] = 'use Illuminate\Database\Eloquent\Model;';
             $output[] = 'use Illuminate\Contracts\Http\Kernel as HttpKernel;';
             $output[] = 'use Illuminate\Contracts\Console\Kernel as ConsoleKernel;';
